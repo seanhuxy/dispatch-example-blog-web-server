@@ -19,19 +19,24 @@ var bucketExistsOrCreate = function (client, bucket) {
     })
 }
 
-var defaultConfig = {
-    "endPoint": "192.168.99.102",
-    "port": "31515",
-    "secure": "false",
-    "accessKey": "AKIAIOSFODNN7EXAMPLE",
-    "secretKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-}
-var defaultBucket = "post-bucket"
-
 module.exports = function (context, params) {
 
     let op = params["op"]
     let post = params["post"]
+
+    // BEGIN of workaround:
+
+    // importing secret from api - gateway is not supported
+    // issue tracked at: https://github.com/vmware/dispatch/issues/171
+    // should replace with the commented code when the issue is addressed
+    let client = new Minio.Client({
+        "endPoint": "192.168.99.102",
+        "port": 31515,
+        "secure": false,
+        "accessKey": "AKIAIOSFODNN7EXAMPLE",
+        "secretKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    })
+    let bucket = "post-bucket"
     // let client = new Minio.Client({
     //     "endPoint": context.secrets["endPoint"],
     //     "port": parseInt(context.secrets["port"]),
@@ -40,14 +45,8 @@ module.exports = function (context, params) {
     //     "secretKey": context.secrets["secretKey"]
     // })
     // let bucket = context.secrets["bucket"]
-    let client = new Minio.Client({
-        "endPoint": "192.168.99.102",
-        "port": 31515,
-        "secure": false,
-        "accessKey": "AKIAIOSFODNN7EXAMPLE",
-        "secretKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-    })
-    let bucket = defaultBucket
+
+    // END of workaround
 
     console.log(`minio input params ${JSON.stringify(params)}`)
 
@@ -58,7 +57,6 @@ module.exports = function (context, params) {
         "get": getPost,
         "delete": deletePost
     }
-
     if (operators[op] == undefined) {
         return { error: "invalid operator" }
     }
@@ -125,15 +123,12 @@ var getPost = function (client, bucket, postId) {
             }
             stream.on('error', err => {
                 err = `error streaming object: ${err}`
-                // console.log(err)
                 reject(err)
             })
             stream.on('data', chunk => {
                 data += chunk
-                // console.log(`streaming data: ${ chunk }`)
             })
             stream.on('end', () => {
-                // console.log(`end streaming data: ${ data }`)
                 fulfill(JSON.parse(data))
             })
         })
