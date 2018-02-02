@@ -1,56 +1,67 @@
 
 
-## install dispatch
 
-dispatch install --file config.yaml
+## Prerequisite
+
+You will need a dispatch cluster deployed and configured, please follow the quick start instruction at [dispatch](https://github.com/vmware/dispatch) repository.
+
+You will need the url of your dispatch installation.
+e.g.
+```
+DISPATCH_HOST=dev.dispatch.vmware.com
+DISPATCH_API_HOST=api.dev.dispatch.vmware.com
+```
+
+For minikube deployment, keep a note of the port of your dispatch host and dipatch api-gateway host.
 
 ## Build the image
-export docker_user=seanhu93
+export docker_user=<your-docker-username>
 docker build -t ${docker_user}/dipatch-nodejs6-blog-webapp:0.0.1-dev1 ./base-image
 docker push ${docker_user}/dipatch-nodejs6-blog-webapp:0.0.1-dev1
 
-## Register the image in Dispatch
+## Register the image with Dispatch
+
+```
 dispatch delete base-image blog-webapp-base-image
 dispatch delete image blog-webapp-image
 dispatch create base-image blog-webapp-base-image ${docker_user}/dipatch-nodejs6-blog-webapp:0.0.1-dev1 --language=nodejs6
 dispatch create image blog-webapp-image blog-webapp-base-image
+```
 
 ## Secret
 
+```
+dispatch delete secret blog-webapp-secret
 dispatch create secret blog-webapp-secret secret.json
+```
 
-## create function
+## Upload the post.js as a Dispatch function
 
-dispatch delete function get-post
-dispatch create function blog-webapp-image get-post blog-app/blog-web-server/getPost.js
-
-dispatch delete function add-post
-dispatch create function blog-webapp-image add-post blog-app/blog-web-server/addPost.js
-
-dispatch delete function list-posts
-dispatch create function blog-webapp-image list-posts blog-app/blog-web-server/listPosts.js
-
+```
 dispatch delete function post
 dispatch create function blog-webapp-image post post.js
+```
 
-## execute function
+## Milestone One: Execute the uploaded function with dispatch cli
 
-dispatch exec post --secret blog-webapp-secret --input '{"op":"get", "post":{"id":"123"}}' --wait
+Use dispatch cli to test if your images, secrets and functions are deployed correctly and ready to be used.
 
-dispatch exec post --secret blog-webapp-secret --input '{"op":"list"}' --wait
-
+```
 dispatch exec post --secret blog-webapp-secret --input '{"op":"add", "post":{"id":"126", "title":"helloworld", "content":"this is a content"}}' --wait
-
+dispatch exec post --secret blog-webapp-secret --input '{"op":"get", "post":{"id":"126"}}' --wait
 dispatch exec post --secret blog-webapp-secret --input '{"op":"update", "post":{"id":"126", "title":"nihao", "content":"nihao"}}' --wait
-
+dispatch exec post --secret blog-webapp-secret --input '{"op":"list"}' --wait
 dispatch exec post --secret blog-webapp-secret --input '{"op":"delete", "post":{"id":"126"}}' --wait
+```
 
-## create apis
+## Create APIs
+
+APIs are used by the blog webapp client (an angular2.0 project)
 
 <!-- issue: need a way to get dispatch api host -->
 <!-- issue: api secret injection -->
 
-``-m OPTIONS`` is a workaround for an known issue [#174](https://github.com/vmware/dispatch/issues/174)
+
 ```
 dispatch delete api list-post-api
 dispatch delete api get-post-api
