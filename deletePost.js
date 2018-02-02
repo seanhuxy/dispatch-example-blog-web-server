@@ -32,14 +32,13 @@ module.exports = function (context, params) {
     })
 
     console.log(`minio input params ${JSON.stringify(params)}`)
-    // console.log(`minio bucket ${bucket}`)
 
     return new Promise((fulfill, reject) => {
         bucketExistsOrCreate(client, bucket).then(() => {
             console.log(`bucket existence check passed`)
-            listPosts(client, bucket).then((posts) => {
-                console.log(`list posts ${JSON.stringify(posts)}`)
-                fulfill({ posts: posts })
+            deletePost(client, bucket, post).then((post) => {
+                console.log(`delete post ${JSON.stringify(post)}`)
+                fulfill({ post: post })
             }).catch((err) => {
                 console.log(err)
                 reject({ error: err })
@@ -49,44 +48,16 @@ module.exports = function (context, params) {
             reject({ error: err })
         })
     })
-};
-
-var getPost = function (client, bucket, post) {
-
-    return new Promise((fulfill, reject) => {
-        client.getObject(bucket, post.id, (err, stream) => {
-            data = ""
-            if (err) {
-                return reject(`error getting object: ${err}`)
-            }
-            stream.on('error', err => {
-                err = `error streaming object: ${err}`
-                // console.log(err)
-                reject(err)
-            })
-            stream.on('data', chunk => {
-                data += chunk
-                // console.log(`streaming data: ${chunk}`)
-            })
-            stream.on('end', () => {
-                // console.log(`end streaming data: ${data}`)
-                fulfill(JSON.parse(data))
-            })
-        })
-    })
 }
 
-var listPosts = function (client, bucket) {
 
+var deletePost = function (post, callback) {
     return new Promise((fulfill, reject) => {
-        var promises = []
-        var stream = client.listObjects(bucket, '', false)
-            .on('data', obj => {
-                promises.push(getPost(client, bucket, { id: obj.name }))
-            }).on('error', err => {
-                reject(`error listing posts: ${err}`)
-            }).on('end', () => {
-                fulfill(Promise.all(promises))
-            })
+        client.removeObject(bucket, post.id, (err) => {
+            if (err) {
+                return reject(`error removing post: ${err}`)
+            }
+            fulfill(post)
+        })
     })
 }
