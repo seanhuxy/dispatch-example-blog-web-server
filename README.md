@@ -1,4 +1,4 @@
-
+## out of date: please refer to https://github.com/vmware/dispatch/tree/master/examples/blog
 
 
 ## Prerequisite
